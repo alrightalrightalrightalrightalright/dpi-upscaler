@@ -140,6 +140,49 @@
             gap: 12px;
         }
 
+        .dpi-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .dpi-btn {
+            padding: 10px;
+            font-size: 13px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fff;
+            color: #333;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s, color 0.2s;
+        }
+
+        .dpi-btn:hover {
+            border-color: #667eea;
+        }
+
+        .dpi-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: #fff;
+        }
+
+        .input-error {
+            color: #c62828;
+            font-size: 12px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .settings-panel {
+            display: none;
+        }
+
+        .settings-panel.active {
+            display: block;
+        }
+
         .info-box {
             background: #f0f4ff;
             border-left: 4px solid #667eea;
@@ -347,6 +390,10 @@
             .dimensions-display {
                 grid-template-columns: 1fr;
             }
+
+            .dpi-buttons {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
         .spinner {
@@ -375,6 +422,12 @@
         <h1>🖼️ DPI Upscaler</h1>
         <p class="subtitle">Browser-based image upscaling for print quality</p>
 
+        <!-- Image Preview -->
+        <div class="preview-container" id="previewContainer">
+            <div class="preview-title">Preview</div>
+            <img id="previewImage" class="preview-image" alt="Preview">
+        </div>
+
         <form id="upscalerForm">
             <!-- File Upload -->
             <div class="form-group">
@@ -383,77 +436,67 @@
                 <div class="info-box" id="fileInfo" style="display: none;"></div>
             </div>
 
+            <div class="settings-panel" id="settingsPanel">
             <!-- Scaling Factor -->
-            <div class="form-group">
-                <label>Scaling Factor: <span id="scaleDisplay">2x</span></label>
-                <div class="slider-container">
-                    <input type="range" id="scaleSlider" min="1.5" max="4" step="0.5" value="2" class="slider">
-                    <div class="scale-value" id="scaleValue">2x</div>
+                <div class="form-group">
+                    <label>Scaling Factor: <span id="scaleDisplay">2x</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="scaleSlider" min="1.5" max="4" step="0.5" value="2" class="slider">
+                        <div class="scale-value" id="scaleValue">2x</div>
+                    </div>
+                    <div class="info-box">Higher scaling = better quality but longer processing time</div>
                 </div>
-                <div class="info-box">Higher scaling = better quality but longer processing time</div>
-            </div>
 
-            <!-- DPI Selection -->
-            <div class="form-group">
-                <label>Output DPI</label>
-                <div class="dpi-input-row">
-                    <select id="dpiPreset">
-                        <option value="">Select preset DPI...</option>
-                        <option value="72">72 DPI (Web)</option>
-                        <option value="150">150 DPI (Low Print)</option>
-                        <option value="200">200 DPI (Draft Print)</option>
-                        <option value="300" selected>300 DPI (Print Standard)</option>
-                        <option value="400">400 DPI (High Quality)</option>
-                        <option value="500">500 DPI (Fine Art)</option>
-                        <option value="custom">Custom DPI...</option>
-                    </select>
-                    <input type="number" id="customDpi" placeholder="Enter custom DPI" min="72" max="1200" style="display: none;">
+                <!-- DPI Selection -->
+                <div class="form-group">
+                    <label>Output DPI</label>
+                    <input type="hidden" id="dpiPreset" value="300">
+                    <div class="dpi-buttons" id="dpiButtons">
+                        <button type="button" class="dpi-btn" data-dpi="72">72</button>
+                        <button type="button" class="dpi-btn" data-dpi="150">150</button>
+                        <button type="button" class="dpi-btn" data-dpi="200">200</button>
+                        <button type="button" class="dpi-btn active" data-dpi="300">300</button>
+                        <button type="button" class="dpi-btn" data-dpi="400">400</button>
+                        <button type="button" class="dpi-btn" data-dpi="500">500</button>
+                        <button type="button" class="dpi-btn" data-dpi="custom">Custom</button>
+                    </div>
+                    <input type="number" id="customDpi" placeholder="Enter custom DPI (72-1200)" min="72" max="1200" step="1" style="display: none;">
+                    <div class="input-error" id="customDpiError">Custom DPI must be a whole number between 72 and 1200.</div>
                 </div>
-            </div>
 
-            <!-- Dimensions Info -->
-            <div class="dimensions-display" id="dimensionsDisplay" style="display: none;">
-                <div class="dimension-card">
-                    <div class="dimension-label">Original Size</div>
-                    <div class="dimension-value"><span id="origWidth">0</span>×<span id="origHeight">0</span></div>
-                    <div class="dimension-unit">pixels @ <span id="origDpi">72</span> DPI</div>
+                <!-- Dimensions Info -->
+                <div class="dimensions-display" id="dimensionsDisplay" style="display: none;">
+                    <div class="dimension-card">
+                        <div class="dimension-label">Original Size</div>
+                        <div class="dimension-value"><span id="origWidth">0</span>×<span id="origHeight">0</span></div>
+                        <div class="dimension-unit">pixels @ <span id="origDpi">72</span> DPI</div>
+                    </div>
+                    <div class="dimension-card">
+                        <div class="dimension-label">Output Size</div>
+                        <div class="dimension-value"><span id="outWidth">0</span>×<span id="outHeight">0</span></div>
+                        <div class="dimension-unit">pixels @ <span id="outDpi">300</span> DPI</div>
+                    </div>
+                    <div class="dimension-card">
+                        <div class="dimension-label">Print Size</div>
+                        <div class="dimension-value" id="printInches">0.00 × 0.00 in</div>
+                        <div class="dimension-unit" id="printCm">0.0 × 0.0 cm @ <span id="printDpi">300</span> DPI</div>
+                    </div>
                 </div>
-                <div class="dimension-card">
-                    <div class="dimension-label">Output Size</div>
-                    <div class="dimension-value"><span id="outWidth">0</span>×<span id="outHeight">0</span></div>
-                    <div class="dimension-unit">pixels @ <span id="outDpi">300</span> DPI</div>
-                </div>
-                <div class="dimension-card">
-                    <div class="dimension-label">Print Size (inches)</div>
-                    <div class="dimension-value"><span id="printWidth">0</span>×<span id="printHeight">0</span></div>
-                    <div class="dimension-unit">@ <span id="printDpi">300</span> DPI</div>
-                </div>
-                <div class="dimension-card">
-                    <div class="dimension-label">Print Size (cm)</div>
-                    <div class="dimension-value"><span id="printWidthCm">0</span>×<span id="printHeightCm">0</span></div>
-                    <div class="dimension-unit">@ <span id="printDpiCm">300</span> DPI</div>
-                </div>
-            </div>
 
-            <!-- Progress Bar -->
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-label"><span class="spinner"></span><span id="progressText">Initializing...</span></div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
+                <!-- Progress Bar -->
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-label"><span class="spinner"></span><span id="progressText">Initializing...</span></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Upscale Button -->
-            <button type="button" id="upscaleBtn" disabled>
-                Upload an image to start
-            </button>
+                <!-- Upscale Button -->
+                <button type="button" id="upscaleBtn" disabled>
+                    Upload an image to start
+                </button>
+            </div>
         </form>
-
-        <!-- Image Preview -->
-        <div class="preview-container" id="previewContainer">
-            <div class="preview-title">Preview</div>
-            <img id="previewImage" class="preview-image" alt="Preview">
-        </div>
 
         <!-- Results Section -->
         <div class="download-section" id="downloadSection">
@@ -522,11 +565,14 @@
         // ==================== DOM ELEMENTS ====================
         const elements = {
             imageInput: document.getElementById('imageInput'),
+            settingsPanel: document.getElementById('settingsPanel'),
             scaleSlider: document.getElementById('scaleSlider'),
             scaleValue: document.getElementById('scaleValue'),
             scaleDisplay: document.getElementById('scaleDisplay'),
             dpiPreset: document.getElementById('dpiPreset'),
+            dpiButtons: document.querySelectorAll('.dpi-btn'),
             customDpi: document.getElementById('customDpi'),
+            customDpiError: document.getElementById('customDpiError'),
             upscaleBtn: document.getElementById('upscaleBtn'),
             progressContainer: document.getElementById('progressContainer'),
             progressFill: document.getElementById('progressFill'),
@@ -571,7 +617,12 @@
             const scale = parseFloat(elements.scaleSlider.value);
             const outputWidth = Math.round(state.originalWidth * scale);
             const outputHeight = Math.round(state.originalHeight * scale);
-            const selectedDpi = parseInt(elements.dpiPreset.value) || 72;
+            const selectedDpi = getSelectedDpi();
+
+            if (!selectedDpi) {
+                elements.dimensionsDisplay.style.display = 'none';
+                return;
+            }
 
             const printWidthInches = outputWidth / selectedDpi;
             const printHeightInches = outputHeight / selectedDpi;
@@ -584,21 +635,43 @@
             document.getElementById('outWidth').textContent = outputWidth;
             document.getElementById('outHeight').textContent = outputHeight;
             document.getElementById('outDpi').textContent = selectedDpi;
-            document.getElementById('printWidth').textContent = printWidthInches.toFixed(2);
-            document.getElementById('printHeight').textContent = printHeightInches.toFixed(2);
+            document.getElementById('printInches').textContent = `${printWidthInches.toFixed(2)} × ${printHeightInches.toFixed(2)} in`;
+            document.getElementById('printCm').textContent = `${printWidthCm.toFixed(1)} × ${printHeightCm.toFixed(1)} cm @ ${selectedDpi} DPI`;
             document.getElementById('printDpi').textContent = selectedDpi;
-            document.getElementById('printWidthCm').textContent = printWidthCm.toFixed(1);
-            document.getElementById('printHeightCm').textContent = printHeightCm.toFixed(1);
-            document.getElementById('printDpiCm').textContent = selectedDpi;
 
             elements.dimensionsDisplay.style.display = 'grid';
         }
 
+        function validateCustomDpi() {
+            const rawValue = elements.customDpi.value.trim();
+
+            if (elements.dpiPreset.value !== 'custom') {
+                elements.customDpiError.style.display = 'none';
+                return true;
+            }
+
+            if (!rawValue) {
+                elements.customDpiError.style.display = 'none';
+                return false;
+            }
+
+            const numeric = Number(rawValue);
+            const isInteger = Number.isInteger(numeric);
+            const isInRange = numeric >= 72 && numeric <= 1200;
+            const isValid = isInteger && isInRange;
+
+            elements.customDpiError.style.display = isValid ? 'none' : 'block';
+            return isValid;
+        }
+
         function getSelectedDpi() {
             if (elements.dpiPreset.value === 'custom') {
-                return parseInt(elements.customDpi.value) || 300;
+                if (!validateCustomDpi()) {
+                    return null;
+                }
+                return parseInt(elements.customDpi.value, 10);
             }
-            return parseInt(elements.dpiPreset.value) || 300;
+            return parseInt(elements.dpiPreset.value, 10) || 300;
         }
 
         // ==================== IMAGE HANDLING ====================
@@ -628,6 +701,7 @@
                     ctx.drawImage(img, 0, 0);
                     elements.previewImage.src = canvas.toDataURL();
                     elements.previewContainer.classList.add('active');
+                    elements.settingsPanel.classList.add('active');
 
                     // Read EXIF data
                     const exifData = await readExifData(file);
@@ -736,19 +810,30 @@
             updateDimensionsDisplay();
         });
 
-        elements.dpiPreset.addEventListener('change', (e) => {
-            if (e.target.value === 'custom') {
-                elements.customDpi.style.display = 'block';
-                elements.customDpi.focus();
-            } else {
-                elements.customDpi.style.display = 'none';
-            }
-            if (state.originalWidth > 0) {
-                updateDimensionsDisplay();
-            }
+        elements.dpiButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const selected = button.dataset.dpi;
+                elements.dpiPreset.value = selected;
+
+                elements.dpiButtons.forEach((btn) => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                if (selected === 'custom') {
+                    elements.customDpi.style.display = 'block';
+                    elements.customDpi.focus();
+                } else {
+                    elements.customDpi.style.display = 'none';
+                    elements.customDpiError.style.display = 'none';
+                }
+
+                if (state.originalWidth > 0) {
+                    updateDimensionsDisplay();
+                }
+            });
         });
 
         elements.customDpi.addEventListener('input', () => {
+            validateCustomDpi();
             if (state.originalWidth > 0) {
                 updateDimensionsDisplay();
             }
@@ -905,14 +990,18 @@
 
             if (state.isProcessing) return;
 
+            const selectedDpi = getSelectedDpi();
+            if (!selectedDpi) {
+                showInfo('Please enter a valid custom DPI between 72 and 1200.', 'error');
+                return;
+            }
+
             state.isProcessing = true;
             elements.upscaleBtn.disabled = true;
             showProgress('Starting upscaling process...', 10);
 
             try {
                 await upscaleWithTensorflow();
-
-                const selectedDpi = getSelectedDpi();
                 updateExifInfo(selectedDpi);
 
                 elements.downloadSection.classList.add('active');
@@ -948,6 +1037,12 @@
             const format = elements.exportFormat.value;
             const quality = format === 'jpeg' ? parseInt(elements.jpegQuality.value) / 100 : 1;
             const selectedDpi = getSelectedDpi();
+
+            if (!selectedDpi) {
+                showInfo('Please enter a valid custom DPI between 72 and 1200.', 'error');
+                return;
+            }
+
             const scale = parseFloat(elements.scaleSlider.value);
 
             showProgress('Exporting image...', 75);
@@ -1039,6 +1134,7 @@
             };
 
             elements.imageInput.value = '';
+            elements.settingsPanel.classList.remove('active');
             elements.previewContainer.classList.remove('active');
             elements.downloadSection.classList.remove('active');
             elements.dimensionsDisplay.style.display = 'none';
@@ -1050,7 +1146,12 @@
             elements.scaleDisplay.textContent = '2x';
             elements.scaleValue.textContent = '2x';
             elements.dpiPreset.value = '300';
+            elements.dpiButtons.forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.dpi === '300');
+            });
             elements.customDpi.style.display = 'none';
+            elements.customDpi.value = '';
+            elements.customDpiError.style.display = 'none';
             elements.exportFormat.value = 'png';
             elements.qualityContainer.classList.remove('active');
         });
