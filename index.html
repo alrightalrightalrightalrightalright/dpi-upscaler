@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(140deg, #0ea5e9 0%, #0284c7 45%, #0369a1 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -66,7 +66,7 @@
         }
 
         input[type="file"]::file-selector-button {
-            background: #667eea;
+            background: #0284c7;
             color: white;
             border: none;
             padding: 8px 16px;
@@ -77,14 +77,14 @@
         }
 
         input[type="file"]::file-selector-button:hover {
-            background: #5568d3;
+            background: #0369a1;
         }
 
         input[type="number"]:focus,
         select:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #0284c7;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
 
         .slider-container {
@@ -109,7 +109,7 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #667eea;
+            background: #0284c7;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
@@ -118,20 +118,20 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #667eea;
+            background: #0284c7;
             cursor: pointer;
             border: none;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .scale-value {
-            background: #f5f5f5;
+            background: #e0f2fe;
             padding: 8px 12px;
             border-radius: 4px;
             min-width: 60px;
             text-align: center;
             font-weight: 600;
-            color: #667eea;
+            color: #0369a1;
         }
 
         .dpi-input-row {
@@ -159,12 +159,12 @@
         }
 
         .dpi-btn:hover {
-            border-color: #667eea;
+            border-color: #0284c7;
         }
 
         .dpi-btn.active {
-            border-color: #667eea;
-            background: #667eea;
+            border-color: #0284c7;
+            background: #0284c7;
             color: #fff;
         }
 
@@ -184,13 +184,13 @@
         }
 
         .info-box {
-            background: #f0f4ff;
-            border-left: 4px solid #667eea;
+            background: #e0f2fe;
+            border-left: 4px solid #0284c7;
             padding: 12px;
             border-radius: 4px;
             margin-bottom: 15px;
             font-size: 13px;
-            color: #555;
+            color: #0c4a6e;
         }
 
         .info-box.warning {
@@ -246,7 +246,7 @@
         button {
             width: 100%;
             padding: 14px;
-            background: #667eea;
+            background: #0284c7;
             color: white;
             border: none;
             border-radius: 8px;
@@ -257,7 +257,7 @@
         }
 
         button:hover:not(:disabled) {
-            background: #5568d3;
+            background: #0369a1;
         }
 
         button:active:not(:disabled) {
@@ -316,7 +316,7 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
+            background: linear-gradient(90deg, #0ea5e9, #0284c7);
             width: 0%;
             transition: width 0.3s;
         }
@@ -401,7 +401,7 @@
             width: 12px;
             height: 12px;
             border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
+            border-top: 2px solid #0284c7;
             border-radius: 50%;
             animation: spin 0.6s linear infinite;
             margin-right: 8px;
@@ -433,7 +433,7 @@
             <div class="form-group">
                 <label for="imageInput">Upload Image</label>
                 <input type="file" id="imageInput" accept="image/*" required>
-                <div class="info-box" id="fileInfo" style="display: none;"></div>
+                <div id="fileInfo" style="display: none;"></div>
             </div>
 
             <div class="settings-panel" id="settingsPanel">
@@ -441,10 +441,9 @@
                 <div class="form-group">
                     <label>Scaling Factor: <span id="scaleDisplay">2x</span></label>
                     <div class="slider-container">
-                        <input type="range" id="scaleSlider" min="1.5" max="4" step="0.5" value="2" class="slider">
+                        <input type="range" id="scaleSlider" min="1" max="4" step="0.5" value="2" class="slider">
                         <div class="scale-value" id="scaleValue">2x</div>
                     </div>
-                    <div class="info-box">Higher scaling = better quality but longer processing time</div>
                 </div>
 
                 <!-- DPI Selection -->
@@ -637,7 +636,6 @@
             document.getElementById('outDpi').textContent = selectedDpi;
             document.getElementById('printInches').textContent = `${printWidthInches.toFixed(2)} × ${printHeightInches.toFixed(2)} in`;
             document.getElementById('printCm').textContent = `${printWidthCm.toFixed(1)} × ${printHeightCm.toFixed(1)} cm @ ${selectedDpi} DPI`;
-            document.getElementById('printDpi').textContent = selectedDpi;
 
             elements.dimensionsDisplay.style.display = 'grid';
         }
@@ -703,37 +701,21 @@
                     elements.previewContainer.classList.add('active');
                     elements.settingsPanel.classList.add('active');
 
-                    // Read EXIF data
+                    // Always unlock the UI immediately after image decode.
+                    // EXIF is best-effort and must not block interaction.
+                    state.isProcessing = false;
+                    elements.upscaleBtn.disabled = false;
+                    elements.upscaleBtn.textContent = 'Upscale Image';
+
+                    // Read EXIF in background with timeout fallback.
                     const exifData = await readExifData(file);
                     if (exifData && exifData.dpi) {
                         state.originalDpi = exifData.dpi;
                     }
 
-                    // Check file size
-                    const fileSizeMb = file.size / (1024 * 1024);
-                    if (fileSizeMb > 50) {
-                        showInfo(`⚠️ Large file (${fileSizeMb.toFixed(1)}MB). Processing may be slow.`, 'warning');
-                    }
-
-                    // Check dimensions
-                    if (img.width > CONFIG.MAX_INPUT_SIZE || img.height > CONFIG.MAX_INPUT_SIZE) {
-                        showInfo(
-                            `⚠️ Image dimensions (${img.width}×${img.height}) exceed recommended size (${CONFIG.MAX_INPUT_SIZE}px). Consider resizing first.`,
-                            'warning'
-                        );
-                    } else if (img.width > CONFIG.WARN_INPUT_SIZE || img.height > CONFIG.WARN_INPUT_SIZE) {
-                        showInfo(
-                            `Image size: ${img.width}×${img.height}px. Processing may take 10-30 seconds.`,
-                            'info'
-                        );
-                    } else {
-                        showInfo(`Image loaded: ${img.width}×${img.height}px @ ${state.originalDpi}DPI`, 'success');
-                    }
+                    showInfo(`Image loaded: ${img.width}×${img.height}px @ ${state.originalDpi} DPI`, 'success');
 
                     updateDimensionsDisplay();
-                    elements.upscaleBtn.disabled = false;
-                    elements.upscaleBtn.textContent = 'Upscale Image';
-                    state.isProcessing = false;
                 };
 
                 img.src = URL.createObjectURL(file);
@@ -748,17 +730,20 @@
         // ==================== EXIF HANDLING ====================
         async function readExifData(file) {
             return new Promise((resolve) => {
+                const timeoutId = setTimeout(() => resolve(null), 1200);
+
                 try {
                     EXIF.getData(file, function() {
+                        clearTimeout(timeoutId);
+
                         const orientation = EXIF.getTag(this, 'Orientation');
                         const xResolution = EXIF.getTag(this, 'XResolution');
                         const yResolution = EXIF.getTag(this, 'YResolution');
                         const resolutionUnit = EXIF.getTag(this, 'ResolutionUnit'); // 1=no unit, 2=inches, 3=cm
 
-                        let dpi = 72; // default
+                        let dpi = 72;
 
                         if (xResolution && yResolution) {
-                            // Handle both number and object formats
                             const xRes = typeof xResolution === 'object' ? xResolution.numerator / xResolution.denominator : xResolution;
                             const yRes = typeof yResolution === 'object' ? yResolution.numerator / yResolution.denominator : yResolution;
                             dpi = Math.round((xRes + yRes) / 2);
@@ -771,6 +756,7 @@
                         });
                     });
                 } catch (error) {
+                    clearTimeout(timeoutId);
                     console.error('Error reading EXIF:', error);
                     resolve(null);
                 }
@@ -1055,26 +1041,19 @@
                     dataUrl = state.upscaledCanvas.toDataURL('image/png');
                 }
 
-                // Create blob and trigger download
-                const blob = await fetch(dataUrl).then(r => r.blob());
+                let finalBlob = await dataUrlToBlob(dataUrl);
 
-                // For PNG, add EXIF metadata if possible
-                let finalBlob = blob;
                 if (format === 'png') {
                     try {
-                        const exifData = createExifForUpscaledImage(scale, selectedDpi);
-                        const pngWithExif = addExifToPng(blob, exifData);
-                        finalBlob = pngWithExif;
+                        finalBlob = await addDpiToPng(finalBlob, selectedDpi);
                     } catch (e) {
-                        console.warn('Could not add EXIF to PNG:', e);
+                        console.warn('Could not add DPI metadata to PNG:', e);
                     }
                 } else if (format === 'jpeg') {
                     try {
-                        const exifData = createExifForUpscaledImage(scale, selectedDpi);
-                        const jpegWithExif = addExifToJpeg(blob, exifData);
-                        finalBlob = jpegWithExif;
+                        finalBlob = await addDpiToJpeg(dataUrl, scale, selectedDpi);
                     } catch (e) {
-                        console.warn('Could not add EXIF to JPEG:', e);
+                        console.warn('Could not add DPI metadata to JPEG:', e);
                     }
                 }
 
@@ -1102,21 +1081,112 @@
             }
         });
 
-        // ==================== EXIF TO IMAGE HELPERS ====================
-        function addExifToJpeg(blob, exifData) {
-            // Simple JPEG EXIF injection
-            // Note: This is a simplified version. Full JPEG EXIF manipulation requires complex binary handling.
-            // For now, we'll return the blob as-is with a note in console
-            console.log('JPEG EXIF injection simplified in browser version');
-            return blob;
+        // ==================== IMAGE METADATA HELPERS ====================
+        async function dataUrlToBlob(dataUrl) {
+            return fetch(dataUrl).then((r) => r.blob());
         }
 
-        function addExifToPng(blob, exifData) {
-            // PNG doesn't natively support EXIF like JPEG does
-            // We could add metadata chunks, but it's complex
-            // For now, return blob as-is
-            console.log('PNG metadata injection: Use external tool for full EXIF support');
-            return blob;
+        async function addDpiToJpeg(baseDataUrl, scale, selectedDpi) {
+            const exifData = createExifForUpscaledImage(scale, selectedDpi);
+            const withExifDataUrl = piexif.insert(exifData, baseDataUrl);
+            return dataUrlToBlob(withExifDataUrl);
+        }
+
+        async function addDpiToPng(blob, selectedDpi) {
+            const bytes = new Uint8Array(await blob.arrayBuffer());
+            const signatureLength = 8;
+
+            // PNG chunk layout: [length(4)][type(4)][data(length)][crc(4)]
+            let offset = signatureLength;
+            let ihdrEnd = -1;
+
+            while (offset + 8 <= bytes.length) {
+                const length = readUInt32BE(bytes, offset);
+                const type = readChunkType(bytes, offset + 4);
+                const chunkTotalLength = 12 + length;
+
+                if (type === 'IHDR') {
+                    ihdrEnd = offset + chunkTotalLength;
+                    break;
+                }
+
+                offset += chunkTotalLength;
+            }
+
+            if (ihdrEnd === -1) {
+                throw new Error('Invalid PNG: IHDR not found');
+            }
+
+            const ppm = Math.round(selectedDpi / 0.0254);
+            const pHYsData = new Uint8Array(9);
+            writeUInt32BE(pHYsData, 0, ppm);
+            writeUInt32BE(pHYsData, 4, ppm);
+            pHYsData[8] = 1; // Unit specifier: meter
+
+            const pHYsChunk = createPngChunk('pHYs', pHYsData);
+
+            const output = new Uint8Array(bytes.length + pHYsChunk.length);
+            output.set(bytes.slice(0, ihdrEnd), 0);
+            output.set(pHYsChunk, ihdrEnd);
+            output.set(bytes.slice(ihdrEnd), ihdrEnd + pHYsChunk.length);
+
+            return new Blob([output], { type: 'image/png' });
+        }
+
+        function readUInt32BE(bytes, start) {
+            return (
+                (bytes[start] << 24) |
+                (bytes[start + 1] << 16) |
+                (bytes[start + 2] << 8) |
+                bytes[start + 3]
+            ) >>> 0;
+        }
+
+        function writeUInt32BE(bytes, start, value) {
+            bytes[start] = (value >>> 24) & 0xff;
+            bytes[start + 1] = (value >>> 16) & 0xff;
+            bytes[start + 2] = (value >>> 8) & 0xff;
+            bytes[start + 3] = value & 0xff;
+        }
+
+        function readChunkType(bytes, start) {
+            return String.fromCharCode(bytes[start], bytes[start + 1], bytes[start + 2], bytes[start + 3]);
+        }
+
+        function createPngChunk(type, data) {
+            const typeBytes = new Uint8Array([
+                type.charCodeAt(0),
+                type.charCodeAt(1),
+                type.charCodeAt(2),
+                type.charCodeAt(3)
+            ]);
+
+            const chunk = new Uint8Array(12 + data.length);
+            writeUInt32BE(chunk, 0, data.length);
+            chunk.set(typeBytes, 4);
+            chunk.set(data, 8);
+
+            const crcInput = new Uint8Array(typeBytes.length + data.length);
+            crcInput.set(typeBytes, 0);
+            crcInput.set(data, 4);
+            const crc = crc32(crcInput);
+
+            writeUInt32BE(chunk, 8 + data.length, crc);
+            return chunk;
+        }
+
+        function crc32(data) {
+            let crc = 0xffffffff;
+
+            for (let i = 0; i < data.length; i += 1) {
+                crc ^= data[i];
+                for (let j = 0; j < 8; j += 1) {
+                    const mask = -(crc & 1);
+                    crc = (crc >>> 1) ^ (0xedb88320 & mask);
+                }
+            }
+
+            return (crc ^ 0xffffffff) >>> 0;
         }
 
         // ==================== RESET BUTTON ====================

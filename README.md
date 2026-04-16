@@ -39,6 +39,14 @@ A simple, browser-based image upscaler that increases DPI for print quality. No 
 3. Enable GitHub Pages in Settings → Pages
 4. Access at `https://yourusername.github.io/repo-name/index.html`
 
+### GitHub Pages Deployment Pipeline (GitHub Actions)
+This repository includes a ready workflow at `.github/workflows/deploy-pages.yml`.
+
+1. Push to `main`
+2. In GitHub: Settings → Pages → Source = GitHub Actions
+3. The workflow runs automatically and deploys your static site
+4. Your page will be available at `https://yourusername.github.io/repo-name/`
+
 ## Understanding DPI and Print Quality
 
 ### What is DPI?
