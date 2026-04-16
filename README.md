@@ -49,7 +49,7 @@ This repository includes a ready workflow at `.github/workflows/deploy-pages.yml
 
 ## Understanding DPI and Print Quality
 
-### What is DPI?
+### What is DPI? 
 - **DPI (Dots Per Inch)** = the resolution at which an image will be printed
 - Higher DPI = sharper print quality but larger file size
 
